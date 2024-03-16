@@ -1,46 +1,40 @@
----
-name: snapshot
-
-on:
-  push:
-    branches:
-      - "main"
-  workflow_dispatch:
-    inputs:
-      dry_run:
-        description: If set, run a dry-run snapshot
-        default: false
-        type: boolean
-
-permissions:
-  contents: read
-
 jobs:
   deploy:
     name: Deploy
-    runs-on: ubuntu-latest
-
+    runs-on: self-hosted
     steps:
-      - id: buildkite
-        name: Run Deploy
-        uses: elastic/apm-pipeline-library/.github/actions/buildkite@current
-        with:
-          vaultUrl: ${{ secrets.VAULT_ADDR }}
-          vaultRoleId: ${{ secrets.VAULT_ROLE_ID }}
-          vaultSecretId: ${{ secrets.VAULT_SECRET_ID }}
-          pipeline: apm-agent-java-snapshot
-          waitFor: false
-          printBuildLogs: false
-          buildEnvVars: |
-            dry_run=${{ inputs.dry_run || 'false' }}
+    - continue-on-error: true
+      id: buildkite
+      name: Run Deploy
+      uses: elastic/apm-pipeline-library/.github/actions/buildkite@current
+      with:
+        buildEnvVars: 'dry_run=${{ inputs.dry_run || ''false'' }}
 
-      - if: ${{ failure() }}
-        uses: elastic/apm-pipeline-library/.github/actions/slack-message@current
-        with:
-          url: ${{ secrets.VAULT_ADDR }}
-          roleId: ${{ secrets.VAULT_ROLE_ID }}
-          secretId: ${{ secrets.VAULT_SECRET_ID }}
-          channel: "#apm-agent-java"
-          message: |
-            :ghost: [${{ github.repository }}] Snapshot *${{ github.ref_name }}* didn't get triggered in Buildkite.
-            Build: (<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|here>)
+          '
+        pipeline: apm-agent-java-snapshot
+        printBuildLogs: false
+        vaultRoleId: ${{ secrets.VAULT_ROLE_ID }}
+        vaultSecretId: ${{ secrets.VAULT_SECRET_ID }}
+        vaultUrl: ${{ secrets.VAULT_ADDR }}
+        waitFor: false
+    - continue-on-error: true
+      if: ${{ failure() }}
+      uses: elastic/apm-pipeline-library/.github/actions/slack-message@current
+      with:
+        channel: '#apm-agent-java'
+        message: ':ghost: [${{ github.repository }}] Snapshot *${{ github.ref_name
+          }}* didn''t get triggered in Buildkite.
+
+          Build: (<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{
+          github.run_id }}|here>)
+
+          '
+        roleId: ${{ secrets.VAULT_ROLE_ID }}
+        secretId: ${{ secrets.VAULT_SECRET_ID }}
+        url: ${{ secrets.VAULT_ADDR }}
+name: snapshot
+on:
+  repository_dispatch:
+    types: trigger-ga___snapshot.yml
+permissions:
+  contents: read

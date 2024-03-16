@@ -1,29 +1,28 @@
-name: updatecli
-
-on:
-  workflow_dispatch: ~
-  schedule:
-    - cron: '0 6 * * *'
-
-permissions:
-  contents: read
-
 jobs:
   bump:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     steps:
-      - uses: actions/checkout@v4
-      - uses: elastic/apm-pipeline-library/.github/actions/updatecli@current
-        with:
-          vaultUrl: ${{ secrets.VAULT_ADDR }}
-          vaultRoleId: ${{ secrets.VAULT_ROLE_ID }}
-          vaultSecretId: ${{ secrets.VAULT_SECRET_ID }}
-          pipeline: .ci/updatecli/updatecli.d
-          values: .ci/updatecli/values.yml
-      - if: failure()
-        uses: elastic/apm-pipeline-library/.github/actions/notify-build-status@current
-        with:
-          vaultUrl: ${{ secrets.VAULT_ADDR }}
-          vaultRoleId: ${{ secrets.VAULT_ROLE_ID }}
-          vaultSecretId: ${{ secrets.VAULT_SECRET_ID }}
-          slackChannel: "#apm-agent-java"
+    - continue-on-error: true
+      uses: actions/checkout@v4
+    - continue-on-error: true
+      uses: elastic/apm-pipeline-library/.github/actions/updatecli@current
+      with:
+        pipeline: .ci/updatecli/updatecli.d
+        values: .ci/updatecli/values.yml
+        vaultRoleId: ${{ secrets.VAULT_ROLE_ID }}
+        vaultSecretId: ${{ secrets.VAULT_SECRET_ID }}
+        vaultUrl: ${{ secrets.VAULT_ADDR }}
+    - continue-on-error: true
+      if: failure()
+      uses: elastic/apm-pipeline-library/.github/actions/notify-build-status@current
+      with:
+        slackChannel: '#apm-agent-java'
+        vaultRoleId: ${{ secrets.VAULT_ROLE_ID }}
+        vaultSecretId: ${{ secrets.VAULT_SECRET_ID }}
+        vaultUrl: ${{ secrets.VAULT_ADDR }}
+name: updatecli
+on:
+  repository_dispatch:
+    types: trigger-ga___updatecli.yml
+permissions:
+  contents: read
